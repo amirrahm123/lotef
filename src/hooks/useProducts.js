@@ -66,5 +66,19 @@ export default function useProducts() {
     }
   }
 
-  return { products, loading, toggleAvailability, addProduct, deleteProduct, refetch: fetchProducts }
+  const updateStock = async (id, stock) => {
+    setProducts(prev => prev.map(p => p._id === id ? { ...p, stock } : p))
+    try {
+      await fetch(`${API}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ stock }),
+      })
+    } catch (err) {
+      console.error('Stock update error:', err)
+      fetchProducts()
+    }
+  }
+
+  return { products, loading, toggleAvailability, updateStock, addProduct, deleteProduct, refetch: fetchProducts }
 }

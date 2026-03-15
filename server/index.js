@@ -57,6 +57,7 @@ const productSchema = new mongoose.Schema({
   description: { type: String, required: true },
   icon:        { type: String, default: '📦' },
   available:   { type: Boolean, default: true },
+  stock:       { type: Number, default: 0 },
 })
 
 const Product = mongoose.model('Product', productSchema)
@@ -193,7 +194,13 @@ app.patch('/api/products/:id', auth, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
     if (!product) return res.status(404).json({ error: 'Not found' })
-    product.available = !product.available
+    // If body has specific fields, update them; otherwise toggle available
+    if (req.body && Object.keys(req.body).length > 0) {
+      if (req.body.available !== undefined) product.available = req.body.available
+      if (req.body.stock !== undefined) product.stock = req.body.stock
+    } else {
+      product.available = !product.available
+    }
     await product.save()
     res.json(product)
   } catch (err) {
@@ -212,32 +219,32 @@ app.delete('/api/products/:id', auth, async (req, res) => {
 
 // ---------- Seed ----------
 const defaultProducts = [
-  { name: 'אקמול 500 מ"ג',       category: 'תרופות ללא מרשם', description: 'משכך כאבים ומוריד חום, 20 טבליות',         icon: '💊', available: true },
-  { name: 'נורופן 200 מ"ג',       category: 'תרופות ללא מרשם', description: 'נוגד דלקת ומשכך כאבים, 20 טבליות',       icon: '💊', available: true },
-  { name: 'אופטלגין טיפות',       category: 'תרופות ללא מרשם', description: 'טיפות למבוגרים, 20 מ"ל',                  icon: '💧', available: true },
-  { name: 'דקסמול קידס',          category: 'תרופות ללא מרשם', description: 'סירופ להורדת חום לילדים, 100 מ"ל',        icon: '🍼', available: true },
-  { name: 'סטופר שלשולים',        category: 'תרופות ללא מרשם', description: 'קפסולות נגד שלשולים, 8 קפסולות',          icon: '💊', available: true },
-  { name: 'רנני אנטאסיד',         category: 'תרופות ללא מרשם', description: 'לטיפול בצרבת, 24 טבליות לעיסה',           icon: '🟢', available: true },
-  { name: 'ויטמין C 1000',        category: 'ויטמינים ותוספים', description: 'תוסף ויטמין C, 30 כמוסות',                icon: '🍊', available: true },
-  { name: 'ויטמין D3 1000',       category: 'ויטמינים ותוספים', description: 'ויטמין D לחיזוק העצמות, 60 כמוסות',       icon: '☀️', available: true },
-  { name: 'אומגה 3',              category: 'ויטמינים ותוספים', description: 'שמן דגים, 90 כמוסות רכות',                icon: '🐟', available: true },
-  { name: 'מגנזיום 400',          category: 'ויטמינים ותוספים', description: 'מגנזיום להרפיית שרירים, 60 טבליות',       icon: '✨', available: true },
-  { name: 'מולטי ויטמין',         category: 'ויטמינים ותוספים', description: 'מולטי ויטמין יומי, 30 טבליות',            icon: '💪', available: true },
-  { name: 'פרוביוטיקה',           category: 'ויטמינים ותוספים', description: 'תוסף פרוביוטי, 30 כמוסות',               icon: '🦠', available: true },
-  { name: 'קרם לחות לפנים',       category: 'טיפוח ויופי', description: 'קרם לחות יומי SPF30, 50 מ"ל',                icon: '🧴', available: true },
-  { name: 'קרם הגנה SPF50',       category: 'טיפוח ויופי', description: 'הגנה מהשמש לכל המשפחה, 200 מ"ל',             icon: '🌞', available: true },
-  { name: 'שמפו טיפולי',          category: 'טיפוח ויופי', description: 'שמפו נגד קשקשים, 250 מ"ל',                   icon: '🧴', available: true },
-  { name: 'סבון פנים עדין',       category: 'טיפוח ויופי', description: 'ניקוי עדין לעור רגיש, 150 מ"ל',              icon: '🫧', available: true },
-  { name: 'מד חום דיגיטלי',       category: 'ציוד רפואי', description: 'מד חום מהיר ומדויק',                           icon: '🌡️', available: true },
-  { name: 'מד לחץ דם',            category: 'ציוד רפואי', description: 'מד לחץ דם אוטומטי לזרוע',                     icon: '❤️', available: true },
-  { name: 'ערכת עזרה ראשונה',     category: 'ציוד רפואי', description: 'ערכה מלאה לבית, 50 פריטים',                    icon: '🩹', available: true },
-  { name: 'פלסטרים מגוון',        category: 'ציוד רפואי', description: 'פלסטרים בגדלים שונים, 40 יחידות',             icon: '🩹', available: true },
-  { name: 'טיטולים מידה 3',       category: 'תינוקות וילדים', description: 'חיתולים לתינוקות 4-9 ק"ג, 50 יחידות',     icon: '👶', available: true },
-  { name: 'מגבונים לתינוק',       category: 'תינוקות וילדים', description: 'מגבונים לחים עדינים, 72 יחידות',           icon: '🧻', available: true },
-  { name: 'שמן תינוקות',          category: 'תינוקות וילדים', description: 'שמן עיסוי לתינוק, 200 מ"ל',               icon: '🍼', available: true },
-  { name: 'ג\'ל חיטוי ידיים',     category: 'היגיינה', description: 'ג\'ל אלכוהולי 70%, 250 מ"ל',                     icon: '🧼', available: true },
-  { name: 'מסכות פנים',           category: 'היגיינה', description: 'מסכות חד פעמיות, 50 יחידות',                      icon: '😷', available: true },
-  { name: 'משחת שיניים',          category: 'היגיינה', description: 'משחת שיניים עם פלואוריד, 100 מ"ל',                icon: '🦷', available: true },
+  { name: 'אקמול 500 מ"ג',       category: 'תרופות ללא מרשם', description: 'משכך כאבים ומוריד חום, 20 טבליות',         icon: '💊', available: true, stock: 50 },
+  { name: 'נורופן 200 מ"ג',       category: 'תרופות ללא מרשם', description: 'נוגד דלקת ומשכך כאבים, 20 טבליות',       icon: '💊', available: true, stock: 40 },
+  { name: 'אופטלגין טיפות',       category: 'תרופות ללא מרשם', description: 'טיפות למבוגרים, 20 מ"ל',                  icon: '💧', available: true, stock: 30 },
+  { name: 'דקסמול קידס',          category: 'תרופות ללא מרשם', description: 'סירופ להורדת חום לילדים, 100 מ"ל',        icon: '🍼', available: true, stock: 25 },
+  { name: 'סטופר שלשולים',        category: 'תרופות ללא מרשם', description: 'קפסולות נגד שלשולים, 8 קפסולות',          icon: '💊', available: true, stock: 35 },
+  { name: 'רנני אנטאסיד',         category: 'תרופות ללא מרשם', description: 'לטיפול בצרבת, 24 טבליות לעיסה',           icon: '🟢', available: true, stock: 20 },
+  { name: 'ויטמין C 1000',        category: 'ויטמינים ותוספים', description: 'תוסף ויטמין C, 30 כמוסות',                icon: '🍊', available: true, stock: 60 },
+  { name: 'ויטמין D3 1000',       category: 'ויטמינים ותוספים', description: 'ויטמין D לחיזוק העצמות, 60 כמוסות',       icon: '☀️', available: true, stock: 45 },
+  { name: 'אומגה 3',              category: 'ויטמינים ותוספים', description: 'שמן דגים, 90 כמוסות רכות',                icon: '🐟', available: true, stock: 30 },
+  { name: 'מגנזיום 400',          category: 'ויטמינים ותוספים', description: 'מגנזיום להרפיית שרירים, 60 טבליות',       icon: '✨', available: true, stock: 40 },
+  { name: 'מולטי ויטמין',         category: 'ויטמינים ותוספים', description: 'מולטי ויטמין יומי, 30 טבליות',            icon: '💪', available: true, stock: 55 },
+  { name: 'פרוביוטיקה',           category: 'ויטמינים ותוספים', description: 'תוסף פרוביוטי, 30 כמוסות',               icon: '🦠', available: true, stock: 20 },
+  { name: 'קרם לחות לפנים',       category: 'טיפוח ויופי', description: 'קרם לחות יומי SPF30, 50 מ"ל',                icon: '🧴', available: true, stock: 15 },
+  { name: 'קרם הגנה SPF50',       category: 'טיפוח ויופי', description: 'הגנה מהשמש לכל המשפחה, 200 מ"ל',             icon: '🌞', available: true, stock: 25 },
+  { name: 'שמפו טיפולי',          category: 'טיפוח ויופי', description: 'שמפו נגד קשקשים, 250 מ"ל',                   icon: '🧴', available: true, stock: 30 },
+  { name: 'סבון פנים עדין',       category: 'טיפוח ויופי', description: 'ניקוי עדין לעור רגיש, 150 מ"ל',              icon: '🫧', available: true, stock: 20 },
+  { name: 'מד חום דיגיטלי',       category: 'ציוד רפואי', description: 'מד חום מהיר ומדויק',                           icon: '🌡️', available: true, stock: 10 },
+  { name: 'מד לחץ דם',            category: 'ציוד רפואי', description: 'מד לחץ דם אוטומטי לזרוע',                     icon: '❤️', available: true, stock: 8 },
+  { name: 'ערכת עזרה ראשונה',     category: 'ציוד רפואי', description: 'ערכה מלאה לבית, 50 פריטים',                    icon: '🩹', available: true, stock: 12 },
+  { name: 'פלסטרים מגוון',        category: 'ציוד רפואי', description: 'פלסטרים בגדלים שונים, 40 יחידות',             icon: '🩹', available: true, stock: 50 },
+  { name: 'טיטולים מידה 3',       category: 'תינוקות וילדים', description: 'חיתולים לתינוקות 4-9 ק"ג, 50 יחידות',     icon: '👶', available: true, stock: 30 },
+  { name: 'מגבונים לתינוק',       category: 'תינוקות וילדים', description: 'מגבונים לחים עדינים, 72 יחידות',           icon: '🧻', available: true, stock: 40 },
+  { name: 'שמן תינוקות',          category: 'תינוקות וילדים', description: 'שמן עיסוי לתינוק, 200 מ"ל',               icon: '🍼', available: true, stock: 20 },
+  { name: 'ג\'ל חיטוי ידיים',     category: 'היגיינה', description: 'ג\'ל אלכוהולי 70%, 250 מ"ל',                     icon: '🧼', available: true, stock: 35 },
+  { name: 'מסכות פנים',           category: 'היגיינה', description: 'מסכות חד פעמיות, 50 יחידות',                      icon: '😷', available: true, stock: 100 },
+  { name: 'משחת שיניים',          category: 'היגיינה', description: 'משחת שיניים עם פלואוריד, 100 מ"ל',                icon: '🦷', available: true, stock: 45 },
 ]
 
 async function seed() {

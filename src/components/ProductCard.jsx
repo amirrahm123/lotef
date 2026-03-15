@@ -31,7 +31,7 @@ export default function ProductCard({ product, index = 0, onClick }) {
         <div className="pc-footer">
           <span className={`pc-status ${product.available ? 'in-stock' : 'out-of-stock'}`}>
             <span className="pc-dot" />
-            {product.available ? 'במלאי' : 'אזל מהמלאי'}
+            {product.available ? (product.stock > 0 ? `במלאי (${product.stock})` : 'במלאי') : 'אזל מהמלאי'}
           </span>
           {product.available && (
             <button className="pc-add-btn" onClick={handleAdd} aria-label="הוסף לסל">

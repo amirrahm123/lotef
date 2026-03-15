@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageTransition from '../components/PageTransition'
 import AnimatedSection from '../components/AnimatedSection'
 import ProductCard from '../components/ProductCard'
+import ProductModal from '../components/ProductModal'
 import useProducts from '../hooks/useProducts'
 import { CATEGORIES } from '../data/defaultProducts'
 
@@ -23,6 +25,7 @@ const features = [
 export default function Home() {
   const { products } = useProducts()
   const featured = products.filter(p => p.available).slice(0, 8)
+  const [selectedProduct, setSelectedProduct] = useState(null)
 
   return (
     <PageTransition>
@@ -83,7 +86,7 @@ export default function Home() {
           </AnimatedSection>
           <div className="products-grid">
             {featured.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
+              <ProductCard key={p._id} product={p} index={i} onClick={setSelectedProduct} />
             ))}
           </div>
           <AnimatedSection className="text-center" delay={0.3}>
@@ -105,6 +108,8 @@ export default function Home() {
           </AnimatedSection>
         </div>
       </section>
+
+      <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
     </PageTransition>
   )
 }

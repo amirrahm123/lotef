@@ -1,6 +1,16 @@
 import { motion } from 'framer-motion'
+import useCart from '../context/CartContext'
 
-export default function ProductCard({ product, index = 0 }) {
+export default function ProductCard({ product, index = 0, onClick }) {
+  const { addItem, openCart } = useCart()
+
+  const handleAdd = (e) => {
+    e.stopPropagation()
+    if (!product.available) return
+    addItem(product)
+    openCart()
+  }
+
   return (
     <motion.div
       className={`product-card ${!product.available ? 'unavailable' : ''}`}
@@ -8,6 +18,8 @@ export default function ProductCard({ product, index = 0 }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.04 }}
+      onClick={() => onClick?.(product)}
+      style={{ cursor: 'pointer' }}
     >
       <div className="pc-image">
         <span className="pc-emoji">{product.icon}</span>
@@ -21,6 +33,11 @@ export default function ProductCard({ product, index = 0 }) {
             <span className="pc-dot" />
             {product.available ? 'במלאי' : 'אזל מהמלאי'}
           </span>
+          {product.available && (
+            <button className="pc-add-btn" onClick={handleAdd} aria-label="הוסף לסל">
+              🛒
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

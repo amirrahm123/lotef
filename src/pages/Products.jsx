@@ -5,6 +5,7 @@ import AnimatedSection from '../components/AnimatedSection'
 import SearchBar from '../components/SearchBar'
 import CategoryFilter from '../components/CategoryFilter'
 import ProductCard from '../components/ProductCard'
+import ProductModal from '../components/ProductModal'
 import useProducts from '../hooks/useProducts'
 import { CATEGORIES } from '../data/defaultProducts'
 
@@ -15,6 +16,7 @@ export default function Products() {
 
   const [search, setSearch] = useState(initQ)
   const [category, setCategory] = useState(initCat)
+  const [selectedProduct, setSelectedProduct] = useState(null)
   const { products } = useProducts()
 
   const filtered = useMemo(() => {
@@ -64,7 +66,7 @@ export default function Products() {
           {filtered.length > 0 ? (
             <div className="products-grid">
               {filtered.map((p, i) => (
-                <ProductCard key={p.id} product={p} index={i} />
+                <ProductCard key={p._id} product={p} index={i} onClick={setSelectedProduct} />
               ))}
             </div>
           ) : (
@@ -76,6 +78,8 @@ export default function Products() {
           )}
         </div>
       </section>
+
+      <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
     </PageTransition>
   )
 }

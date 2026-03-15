@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import useProducts from '../hooks/useProducts'
+import useCart from '../context/CartContext'
 
 const links = [
   { to: '/',         label: 'דף הבית' },
@@ -12,8 +14,12 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { products } = useProducts()
+  const { totalItems, openCart } = useCart()
+  const searchRef = useRef(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30)
@@ -21,11 +27,38 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { setMenuOpen(false); setSearch('') }, [location])
+  useEffect(() => { setMenuOpen(false); setSearch(''); setShowDropdown(false) }, [location])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const results = useMemo(() => {
+    if (!search.trim()) return []
+    const q = search.trim()
+    const startsWithName = products.filter(p => p.name.startsWith(q))
+    const containsName = products.filter(p => !p.name.startsWith(q) && (p.name.includes(q) || p.category.includes(q) || p.description.includes(q)))
+    return [...startsWithName, ...containsName].slice(0, 6)
+  }, [search, products])
 
   const handleSearch = (e) => {
     e.preventDefault()
-    if (search.trim()) navigate(`/products?q=${encodeURIComponent(search.trim())}`)
+    if (search.trim()) {
+      navigate(`/products?q=${encodeURIComponent(search.trim())}`)
+      setShowDropdown(false)
+    }
+  }
+
+  const handleInputChange = (e) => {
+    setSearch(e.target.value)
+    setShowDropdown(e.target.value.trim().length > 0)
   }
 
   return (
@@ -39,18 +72,53 @@ export default function Navbar() {
           </div>
         </Link>
 
-        <form className="nav-search" onSubmit={handleSearch}>
-          <span className="nav-search-icon">🔍</span>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש מוצרים..."
-          />
-          {search && (
-            <button type="button" className="nav-search-clear" onClick={() => setSearch('')}>✕</button>
+        <div className="nav-search-wrap" ref={searchRef}>
+          <form className="nav-search" onSubmit={handleSearch}>
+            <span className="nav-search-icon">🔍</span>
+            <input
+              type="text"
+              value={search}
+              onChange={handleInputChange}
+              onFocus={() => search.trim() && setShowDropdown(true)}
+              placeholder="חיפוש מוצרים..."
+            />
+            {search && (
+              <button type="button" className="nav-search-clear" onClick={() => { setSearch(''); setShowDropdown(false) }}>✕</button>
+            )}
+          </form>
+
+          {showDropdown && (
+            <div className="search-dropdown">
+              {results.length > 0 ? (
+                <>
+                  {results.map(p => (
+                    <Link
+                      key={p._id}
+                      to={`/products?q=${encodeURIComponent(p.name)}`}
+                      className="search-result"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <span className="search-result-icon">{p.icon}</span>
+                      <div>
+                        <span className="search-result-name">{p.name}</span>
+                        <span className="search-result-cat">{p.category}</span>
+                      </div>
+                    </Link>
+                  ))}
+                  <Link
+                    to={`/products?q=${encodeURIComponent(search.trim())}`}
+                    className="search-all"
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    הצג את כל התוצאות ({products.filter(p => p.name.includes(search.trim()) || p.category.includes(search.trim()) || p.description.includes(search.trim())).length})
+                  </Link>
+                </>
+              ) : (
+                <div className="search-no-results">לא נמצאו מוצרים</div>
+              )}
+            </div>
           )}
-        </form>
+        </div>
 
         <ul className="nav-links">
           {links.map(l => (
@@ -60,13 +128,15 @@ export default function Navbar() {
               </NavLink>
             </li>
           ))}
-          <li>
-            <Link to="/admin" className="nav-admin" title="ניהול">🔒</Link>
-          </li>
         </ul>
 
         <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="תפריט">
           <span /><span /><span />
+        </button>
+
+        <button className="nav-cart-btn" onClick={openCart} aria-label="סל קניות">
+          🛒
+          {totalItems > 0 && <span className="nav-cart-badge">{totalItems}</span>}
         </button>
       </div>
 
@@ -76,10 +146,24 @@ export default function Navbar() {
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={handleInputChange}
             placeholder="חיפוש מוצרים..."
           />
         </form>
+        {menuOpen && search.trim() && results.length > 0 && (
+          <div className="mobile-search-results">
+            {results.map(p => (
+              <Link
+                key={p._id}
+                to={`/products?q=${encodeURIComponent(p.name)}`}
+                className="search-result"
+              >
+                <span className="search-result-icon">{p.icon}</span>
+                <span className="search-result-name">{p.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
         <ul>
           {links.map(l => (
             <li key={l.to}>
@@ -88,9 +172,6 @@ export default function Navbar() {
               </NavLink>
             </li>
           ))}
-          <li>
-            <Link to="/admin" className="nav-admin-mobile">🔒 ניהול</Link>
-          </li>
         </ul>
       </div>
     </nav>

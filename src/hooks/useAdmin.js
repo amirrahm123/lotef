@@ -13,15 +13,19 @@ export default function useAdmin() {
     const token = localStorage.getItem(TOKEN_KEY)
     if (!token) { setLoading(false); return }
 
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+
     fetch(`${API}/verify`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
       .then(res => {
         if (res.ok) setIsAdmin(true)
         else localStorage.removeItem(TOKEN_KEY)
       })
       .catch(() => localStorage.removeItem(TOKEN_KEY))
-      .finally(() => setLoading(false))
+      .finally(() => { clearTimeout(timeout); setLoading(false) })
   }, [])
 
   const login = async (password) => {

@@ -9,9 +9,13 @@ app.use(cors())
 app.use(express.json())
 
 // ---------- DB ----------
+if (!process.env.MONGODB_URI) {
+  console.error('MONGODB_URI is not set! Check your environment variables.')
+  process.exit(1)
+}
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB error:', err))
+  .catch(err => { console.error('MongoDB error:', err); process.exit(1) })
 
 const productSchema = new mongoose.Schema({
   name:        { type: String, required: true },
@@ -125,10 +129,14 @@ const defaultProducts = [
 ]
 
 async function seed() {
-  const count = await Product.countDocuments()
-  if (count === 0) {
-    await Product.insertMany(defaultProducts)
-    console.log('Seeded', defaultProducts.length, 'products')
+  try {
+    const count = await Product.countDocuments()
+    if (count === 0) {
+      await Product.insertMany(defaultProducts)
+      console.log('Seeded', defaultProducts.length, 'products')
+    }
+  } catch (err) {
+    console.error('Seed error:', err.message)
   }
 }
 

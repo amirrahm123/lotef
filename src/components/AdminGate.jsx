@@ -2,17 +2,22 @@ import { useState } from 'react'
 import useAdmin from '../hooks/useAdmin'
 
 export default function AdminGate({ children }) {
-  const { isAdmin, login } = useAdmin()
+  const { isAdmin, loading, login } = useAdmin()
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
+  if (loading) return <div style={{ padding: '100px', textAlign: 'center' }}>טוען...</div>
   if (isAdmin) return children
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!login(password)) {
-      setError(true)
-      setTimeout(() => setError(false), 2000)
+    setSubmitting(true)
+    const result = await login(password)
+    setSubmitting(false)
+    if (result !== true) {
+      setError(result === 'timeout' ? 'timeout' : 'wrong')
+      setTimeout(() => setError(''), 3000)
     }
   }
 
@@ -29,9 +34,13 @@ export default function AdminGate({ children }) {
             onChange={e => setPassword(e.target.value)}
             placeholder="סיסמה"
             autoFocus
+            disabled={submitting}
           />
-          <button type="submit" className="btn-green">כניסה</button>
-          {error && <p className="admin-error">סיסמה שגויה</p>}
+          <button type="submit" className="btn-green" disabled={submitting}>
+            {submitting ? 'מתחבר... (יכול לקחת עד 30 שניות)' : 'כניסה'}
+          </button>
+          {error === 'wrong' && <p className="admin-error">סיסמה שגויה</p>}
+          {error === 'timeout' && <p className="admin-error">השרת מתעורר, נסו שוב בעוד כמה שניות...</p>}
         </form>
       </div>
     </div>

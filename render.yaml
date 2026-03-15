@@ -3,8 +3,10 @@ services:
     name: lotef-api
     runtime: node
     rootDir: server
+    region: oregon
     buildCommand: npm install
     startCommand: node index.js
+    nodeVersion: "20"
     envVars:
       - key: MONGODB_URI
         sync: false

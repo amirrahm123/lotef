@@ -2,8 +2,9 @@ services:
   - type: web
     name: lotef-api
     runtime: node
+    rootDir: server
     buildCommand: npm install
-    startCommand: node server/index.js
+    startCommand: node index.js
     envVars:
       - key: MONGODB_URI
         sync: false

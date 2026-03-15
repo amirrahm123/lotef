@@ -30,11 +30,15 @@ export default function useAdmin() {
 
   const login = async (password) => {
     try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 5000)
       const res = await fetch(`${API}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
       if (!res.ok) return false
       const { token } = await res.json()
       localStorage.setItem(TOKEN_KEY, token)

@@ -2,8 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs')
-require('dotenv').config()
+try { require('dotenv').config() } catch (e) { /* dotenv not needed on Render */ }
 
 const app = express()
 app.use(cors())

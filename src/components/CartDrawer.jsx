@@ -1,9 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useCart from '../context/CartContext'
+import API_BASE from '../config'
 
 export default function CartDrawer() {
   const { items, removeItem, updateQty, clearCart, totalItems, isOpen, closeCart } = useCart()
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (isOpen) {
@@ -13,6 +19,38 @@ export default function CartDrawer() {
     }
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSent(false)
+      setError('')
+    }
+  }, [isOpen])
+
+  const handleSubmitOrder = async () => {
+    setSending(true)
+    setError('')
+    try {
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setSent(true)
+      clearCart()
+      setCustomerName('')
+      setCustomerPhone('')
+    } catch {
+      setError('שגיאה בשליחת ההזמנה, נסו שוב')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -38,7 +76,13 @@ export default function CartDrawer() {
               <button className="cart-close" onClick={closeCart} aria-label="סגור">✕</button>
             </div>
 
-            {items.length === 0 ? (
+            {sent ? (
+              <div className="cart-empty">
+                <span className="cart-empty-icon">✅</span>
+                <p>ההזמנה נשלחה בהצלחה!</p>
+                <span className="cart-empty-sub">ניצור איתך קשר בהקדם</span>
+              </div>
+            ) : items.length === 0 ? (
               <div className="cart-empty">
                 <span className="cart-empty-icon">🛒</span>
                 <p>הסל ריק</p>
@@ -77,17 +121,43 @@ export default function CartDrawer() {
                 </div>
 
                 <div className="cart-footer">
+                  <div className="cart-customer-fields">
+                    <input
+                      type="text"
+                      placeholder="שם מלא"
+                      value={customerName}
+                      onChange={e => setCustomerName(e.target.value)}
+                      className="cart-input"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="טלפון"
+                      value={customerPhone}
+                      onChange={e => setCustomerPhone(e.target.value)}
+                      className="cart-input"
+                      dir="ltr"
+                    />
+                  </div>
                   <div className="cart-total">
                     <span>סה״כ פריטים:</span>
                     <strong>{totalItems}</strong>
                   </div>
+                  <button
+                    className="btn-green cart-order-btn"
+                    onClick={handleSubmitOrder}
+                    disabled={sending}
+                  >
+                    {sending ? '⏳ שולח...' : '📧 שלח הזמנה'}
+                  </button>
+                  {error && <p className="cart-error">{error}</p>}
                   <a
                     href={`https://wa.me/972542223923?text=${encodeURIComponent(buildWhatsAppMessage(items))}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-green cart-order-btn"
+                    className="btn-outline cart-clear-btn"
+                    style={{ textAlign: 'center', textDecoration: 'none' }}
                   >
-                    💬 שלח הזמנה בוואטסאפ
+                    💬 שלח בוואטסאפ
                   </a>
                   <button className="btn-outline cart-clear-btn" onClick={clearCart}>
                     🗑️ נקה סל

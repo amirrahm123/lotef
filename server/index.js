@@ -2,6 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
+const nodemailer = require('nodemailer')
 try { require('dotenv').config() } catch (e) { /* dotenv not needed on Render */ }
 
 const app = express()
@@ -71,6 +72,84 @@ function auth(req, res, next) {
     res.status(401).json({ error: 'Invalid token' })
   }
 }
+
+// ---------- Email transporter ----------
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+})
+
+// ---------- Order endpoint ----------
+app.post('/api/orders', async (req, res) => {
+  const { items, customerName, customerPhone } = req.body
+  if (!items || !items.length) {
+    return res.status(400).json({ error: 'No items in order' })
+  }
+
+  const now = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })
+
+  const itemRows = items.map((item, i) =>
+    `<tr>
+      <td style="padding:8px 12px;border:1px solid #ddd;text-align:center;">${i + 1}</td>
+      <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">${item.icon || '📦'} ${item.name}</td>
+      <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">${item.category || ''}</td>
+      <td style="padding:8px 12px;border:1px solid #ddd;text-align:center;">${item.qty}</td>
+    </tr>`
+  ).join('')
+
+  const totalItems = items.reduce((sum, item) => sum + item.qty, 0)
+
+  const html = `
+    <div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <div style="background:#0d9488;color:white;padding:20px;border-radius:8px 8px 0 0;text-align:center;">
+        <h1 style="margin:0;">🛒 הזמנה חדשה מלוטף</h1>
+        <p style="margin:8px 0 0;opacity:0.9;">${now}</p>
+      </div>
+
+      ${customerName || customerPhone ? `
+      <div style="background:#f0fdfa;padding:16px;border:1px solid #ddd;border-top:none;">
+        <h3 style="margin:0 0 8px;color:#0d9488;">פרטי הלקוח</h3>
+        ${customerName ? `<p style="margin:4px 0;"><strong>שם:</strong> ${customerName}</p>` : ''}
+        ${customerPhone ? `<p style="margin:4px 0;"><strong>טלפון:</strong> ${customerPhone}</p>` : ''}
+      </div>
+      ` : ''}
+
+      <table style="width:100%;border-collapse:collapse;margin-top:0;">
+        <thead>
+          <tr style="background:#f3f4f6;">
+            <th style="padding:10px 12px;border:1px solid #ddd;text-align:center;width:40px;">#</th>
+            <th style="padding:10px 12px;border:1px solid #ddd;text-align:right;">מוצר</th>
+            <th style="padding:10px 12px;border:1px solid #ddd;text-align:right;">קטגוריה</th>
+            <th style="padding:10px 12px;border:1px solid #ddd;text-align:center;width:60px;">כמות</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+        </tbody>
+      </table>
+
+      <div style="background:#f3f4f6;padding:16px;border:1px solid #ddd;border-top:none;text-align:center;border-radius:0 0 8px 8px;">
+        <strong>סה״כ פריטים: ${totalItems}</strong>
+      </div>
+    </div>
+  `
+
+  try {
+    await transporter.sendMail({
+      from: `"לוטף - בית מרקחת" <${process.env.EMAIL_USER}>`,
+      to: process.env.ORDER_EMAIL || process.env.EMAIL_USER,
+      subject: `הזמנה חדשה מלוטף — ${totalItems} פריטים — ${now}`,
+      html,
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Email send error:', err.message)
+    res.status(500).json({ error: 'Failed to send email' })
+  }
+})
 
 // ---------- Routes ----------
 

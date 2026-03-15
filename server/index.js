@@ -8,15 +8,48 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// ---------- DB ----------
-if (!process.env.MONGODB_URI) {
-  console.error('MONGODB_URI is not set! Check your environment variables.')
-  process.exit(1)
-}
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => { console.error('MongoDB error:', err); process.exit(1) })
+// ---------- Health check (Render pings this) ----------
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' })
+})
 
+// ---------- DB ----------
+const MONGODB_URI = process.env.MONGODB_URI
+if (!MONGODB_URI) {
+  console.error('WARNING: MONGODB_URI is not set! DB features will not work.')
+}
+
+let dbReady = false
+
+async function connectDB() {
+  if (!MONGODB_URI) return
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+      heartbeatFrequencyMS: 30000,
+    })
+    dbReady = true
+    console.log('MongoDB connected')
+    await seed()
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message)
+    // Retry in 5 seconds
+    setTimeout(connectDB, 5000)
+  }
+}
+
+mongoose.connection.on('disconnected', () => {
+  dbReady = false
+  console.log('MongoDB disconnected, will retry...')
+  setTimeout(connectDB, 5000)
+})
+
+mongoose.connection.on('error', (err) => {
+  dbReady = false
+  console.error('MongoDB error:', err.message)
+})
+
+// ---------- Schema ----------
 const productSchema = new mongoose.Schema({
   name:        { type: String, required: true },
   category:    { type: String, required: true },
@@ -142,7 +175,16 @@ async function seed() {
 
 // ---------- Start ----------
 const PORT = process.env.PORT || 3002
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`)
-  seed()
+  connectDB()
+})
+
+// Render sends SIGTERM on shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down...')
+  server.close(() => {
+    mongoose.connection.close()
+    process.exit(0)
+  })
 })

@@ -72,6 +72,11 @@ export default function Navbar() {
           </div>
         </Link>
 
+        <button className="nav-cart-btn" onClick={openCart} aria-label="סל קניות">
+          🛒
+          {totalItems > 0 && <span className="nav-cart-badge">{totalItems}</span>}
+        </button>
+
         <div className="nav-search-wrap" ref={searchRef}>
           <form className="nav-search" onSubmit={handleSearch}>
             <span className="nav-search-icon">🔍</span>
@@ -132,11 +137,6 @@ export default function Navbar() {
 
         <button className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-label="תפריט">
           <span /><span /><span />
-        </button>
-
-        <button className="nav-cart-btn" onClick={openCart} aria-label="סל קניות">
-          🛒
-          {totalItems > 0 && <span className="nav-cart-badge">{totalItems}</span>}
         </button>
       </div>
 

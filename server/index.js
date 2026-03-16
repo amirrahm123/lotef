@@ -1,4 +1,5 @@
 const express = require('express')
+const path = require('path')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
@@ -8,6 +9,10 @@ try { require('dotenv').config() } catch (e) { /* dotenv not needed on Render */
 const app = express()
 app.use(cors())
 app.use(express.json())
+
+// ---------- Serve frontend ----------
+const distPath = path.join(__dirname, '..', 'dist')
+app.use(express.static(distPath))
 
 // ---------- Health check (Render pings this) ----------
 app.get('/healthz', (req, res) => {
@@ -258,6 +263,11 @@ async function seed() {
     console.error('Seed error:', err.message)
   }
 }
+
+// ---------- SPA fallback (must be after API routes) ----------
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
+})
 
 // ---------- Start ----------
 const PORT = process.env.PORT || 3002

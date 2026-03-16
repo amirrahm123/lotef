@@ -68,7 +68,7 @@ export default function Navbar() {
           <span className="nav-logo-icon">💊</span>
           <div>
             <span className="nav-logo-name">לוטף</span>
-            <span className="nav-logo-sub">בית מרקחת</span>
+            <span className="nav-logo-sub">בית מרקחת בריאות והומאופתיה</span>
           </div>
         </Link>
 

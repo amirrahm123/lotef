@@ -35,7 +35,7 @@ export default function Home() {
         <div className="hero-content">
           <AnimatedSection>
             <span className="hero-badge">💊 בית מרקחת</span>
-            <h1>ברוכים הבאים ל<span className="text-green">לוטף</span></h1>
+            <h1>בית מרקחת בריאות והומאופתיה <span className="text-green">לוטף</span></h1>
             <p className="hero-sub">מגוון רחב של תרופות, ויטמינים ומוצרי בריאות — הכל במקום אחד</p>
             <Link to="/products" className="btn-green">צפו במוצרים שלנו ←</Link>
           </AnimatedSection>
